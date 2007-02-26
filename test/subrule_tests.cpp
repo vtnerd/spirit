@@ -1,14 +1,13 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 1998-2003 Joel de Guzman
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #include <iostream>
-#include <cassert>
+#include <boost/detail/lightweight_test.hpp>
 
 using namespace std;
 
@@ -38,10 +37,10 @@ subrules_tests()
         )
     );
 
-    assert(pi.hit);
-    assert(pi.full);
-    assert(pi.length == 9);
-    assert(*pi.stop == 0);
+    BOOST_TEST(pi.hit);
+    BOOST_TEST(pi.full);
+    BOOST_TEST(pi.length == 9);
+    BOOST_TEST(*pi.stop == 0);
 
     pi = parse("aaaabababaaabbb",
         (
@@ -51,10 +50,10 @@ subrules_tests()
         )
     );
 
-    assert(pi.hit);
-    assert(pi.full);
-    assert(pi.length == 15);
-    assert(*pi.stop == 0);
+    BOOST_TEST(pi.hit);
+    BOOST_TEST(pi.full);
+    BOOST_TEST(pi.length == 15);
+    BOOST_TEST(*pi.stop == 0);
 
     pi = parse("aaaabababaaabba",
         (
@@ -64,9 +63,9 @@ subrules_tests()
         )
     );
 
-    assert(pi.hit);
-    assert(!pi.full);
-    assert(pi.length == 14);
+    BOOST_TEST(pi.hit);
+    BOOST_TEST(!pi.full);
+    BOOST_TEST(pi.length == 14);
 
     pi = parse("aaaabababaaabbb",
 
@@ -74,10 +73,10 @@ subrules_tests()
         start = (ch_p('a') | 'b') >> (start | 'b')
     );
 
-    assert(pi.hit);
-    assert(pi.full);
-    assert(pi.length == 15);
-    assert(*pi.stop == 0);
+    BOOST_TEST(pi.hit);
+    BOOST_TEST(pi.full);
+    BOOST_TEST(pi.length == 15);
+    BOOST_TEST(*pi.stop == 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,7 +88,6 @@ int
 main()
 {
     subrules_tests();
-    cout << "Tests concluded successfully\n";
-    return 0;
+    return boost::report_errors();
 }
 

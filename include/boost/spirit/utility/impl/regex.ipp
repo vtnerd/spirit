@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2002-2003 Hartmut Kaiser
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_REGEX_IPP
@@ -63,7 +62,11 @@ public:
     }
 
 private:
-    boost::reg_expression<CharT, boost::regex_traits<CharT> > rxstr;    // regular expression to match
+#if BOOST_VERSION >= 013300
+    boost::basic_regex<CharT> rxstr;       // regular expression to match
+#else
+    boost::reg_expression<CharT> rxstr;    // regular expression to match
+#endif
 };
 
 }   // namespace impl

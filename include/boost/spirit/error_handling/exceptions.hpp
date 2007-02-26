@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_EXCEPTIONS_HPP
@@ -15,6 +14,8 @@
 #include <boost/spirit/core/parser.hpp>
 #include <boost/spirit/core/composite/composite.hpp>
 #include <exception>
+
+#include <boost/spirit/error_handling/exceptions_fwd.hpp>
 
 namespace boost { namespace spirit {
 
@@ -37,9 +38,15 @@ namespace boost { namespace spirit {
 
         parser_error_base() {}
         virtual ~parser_error_base() throw() {}
-        parser_error_base(parser_error_base const&) {}
+
+    public:
+
+        parser_error_base(parser_error_base const& rhs)
+            : std::exception(rhs) {}
         parser_error_base& operator=(parser_error_base const&)
-        { return *this; }
+        {
+            return *this;
+        }
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -56,7 +63,7 @@ namespace boost { namespace spirit {
     //      an iterator and an error descriptor.
     //
     ///////////////////////////////////////////////////////////////////////////
-    template <typename ErrorDescrT, typename IteratorT = char const*>
+    template <typename ErrorDescrT, typename IteratorT>
     struct parser_error : public parser_error_base
     {
         typedef ErrorDescrT error_descr_t;
@@ -65,15 +72,29 @@ namespace boost { namespace spirit {
         parser_error(IteratorT where_, ErrorDescrT descriptor_)
         : where(where_), descriptor(descriptor_) {}
 
+        parser_error(parser_error const& rhs)
+        : parser_error_base(rhs)
+        , where(rhs.where), descriptor(rhs.descriptor) {}
+
+        parser_error&
+        operator=(parser_error const& rhs)
+        {
+            where = rhs.where;
+            descriptor = rhs.descriptor;
+            return *this;
+        }
+
         virtual
         ~parser_error() throw() {}
 
         virtual const char*
         what() const throw()
-        { return "boost::spirit::parser_error"; }
+        {
+            return "boost::spirit::parser_error";
+        }
 
-        IteratorT const   where;
-        ErrorDescrT const descriptor;
+        IteratorT where;
+        ErrorDescrT descriptor;
     };
 
     //////////////////////////////////
@@ -108,7 +129,9 @@ namespace boost { namespace spirit {
 
         template <typename ScannerT>
         struct result
-        { typedef typename parser_result<ParserT, ScannerT>::type type; };
+        {
+            typedef typename parser_result<ParserT, ScannerT>::type type;
+        };
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -120,11 +143,7 @@ namespace boost { namespace spirit {
             result_t hit = this->subject().parse(scan);
             if (!hit)
             {
-            #ifndef __BORLANDC__
                 throw_(scan.first, descriptor);
-            #else
-                throw_(scan.first, const_cast<ErrorDescrT &>(descriptor));
-            #endif
             }
             return hit;
         }
@@ -170,7 +189,9 @@ namespace boost { namespace spirit {
         template <typename ParserT>
         assertive_parser<ErrorDescrT, ParserT>
         operator()(ParserT const& parser) const
-        { return assertive_parser<ErrorDescrT, ParserT>(parser, descriptor); }
+        {
+            return assertive_parser<ErrorDescrT, ParserT>(parser, descriptor);
+        }
 
         ErrorDescrT descriptor;
     };
@@ -192,20 +213,20 @@ namespace boost { namespace spirit {
     //          rethrow:    rethrows the error.
     //
     ///////////////////////////////////////////////////////////////////////////
-    template <typename T = nil_t>
+    template <typename T>
     struct error_status
     {
         enum result_t { fail, retry, accept, rethrow };
 
         error_status(
             result_t result_ = fail,
-            int length = -1,
+            std::ptrdiff_t length = -1,
             T const& value_ = T())
         : result(result_), length(length), value(value_) {}
 
-        result_t    result;
-        int         length;
-        T           value;
+        result_t        result;
+        std::ptrdiff_t  length;
+        T               value;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -252,7 +273,9 @@ namespace boost { namespace spirit {
 
         template <typename ScannerT>
         struct result
-        { typedef typename parser_result<ParserT, ScannerT>::type type; };
+        {
+            typedef typename parser_result<ParserT, ScannerT>::type type;
+        };
 
         template <typename ScannerT>
         typename parser_result<self_t, ScannerT>::type
@@ -289,9 +312,6 @@ namespace boost { namespace spirit {
     //      fallback_parser's HandlerT (see above).
     //
     ///////////////////////////////////////////////////////////////////////////
-    template <typename ErrorDescrT>
-    struct guard;
-
     template <typename ErrorDescrT, typename ParserT>
     struct guard_gen : public unary<ParserT, nil_t>
     {
@@ -314,8 +334,8 @@ namespace boost { namespace spirit {
     struct guard
     {
         template <typename ParserT>
-        struct result {
-
+        struct result
+        {
             typedef guard_gen<ErrorDescrT, ParserT> type;
         };
 

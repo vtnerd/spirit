@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_TST_IPP
@@ -12,6 +11,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 #include <memory> // for std::auto_ptr
+#include <boost/spirit/core/assert.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace boost { namespace spirit {
@@ -101,7 +101,7 @@ namespace boost { namespace spirit {
         struct search_info
         {
             T*          data;
-            unsigned    length;
+            std::size_t length;
         };
 
         tst()
@@ -133,6 +133,9 @@ namespace boost { namespace spirit {
 
             node_t**  np = &root;
             CharT   ch = *first;
+
+            BOOST_SPIRIT_ASSERT(first == last || ch != 0
+                && "Won't add string containing null character");
 
             for (;;)
             {
@@ -168,7 +171,9 @@ namespace boost { namespace spirit {
                             }
                        }
                         ++first;
-                        ch = (first == last) ? 0 : *first;
+                        ch = (first == last) ? CharT(0) : *first;
+                        BOOST_SPIRIT_ASSERT(first == last || ch != 0
+                            && "Won't add string containing null character");
                         np = &(**np).middle.link;
                     }
                     else
@@ -192,11 +197,12 @@ namespace boost { namespace spirit {
             CharT       ch = *scan;
             iterator_t  save = scan.first;
             iterator_t  latest = scan.first;
-            unsigned    latest_len = 0;
+            std::size_t latest_len = 0;
 
             while (np)
             {
-                if (ch < np->value)
+
+                if (ch < np->value) // => go left!
                 {
                     if (np->value == 0)
                     {
@@ -207,41 +213,41 @@ namespace boost { namespace spirit {
                             latest_len = result.length;
                         }
                     }
+
                     np = np->left;
                 }
-                else
+                else if (ch == np->value) // => go middle!
                 {
-                    if (ch == np->value)
+                    // Matching the null character is not allowed.
+                    if (np->value == 0)
                     {
-                        if (scan.at_end())
+                        result.data = np->middle.data;
+                        if (result.data)
                         {
-                            result.data = np->middle.data;
-                            if (result.data)
-                            {
-                                latest = scan.first;
-                                latest_len = result.length;
-                            }
-                            break;
+                            latest = scan.first;
+                            latest_len = result.length;
                         }
-
-                        ++scan;
-                        ch = scan.at_end() ? 0 : *scan;
-                        np = np->middle.link;
-                        ++result.length;
+                        break;
                     }
-                    else
+
+                    ++scan;
+                    ch = scan.at_end() ? CharT(0) : *scan;
+                    np = np->middle.link;
+                    ++result.length;
+                }
+                else // (ch > np->value) => go right!
+                {
+                    if (np->value == 0)
                     {
-                        if (np->value == 0)
+                        result.data = np->middle.data;
+                        if (result.data)
                         {
-                            result.data = np->middle.data;
-                            if (result.data)
-                            {
-                                latest = scan.first;
-                                latest_len = result.length;
-                            }
+                            latest = scan.first;
+                            latest_len = result.length;
                         }
-                        np = np->right;
-                     }
+                    }
+
+                    np = np->right;
                 }
             }
 

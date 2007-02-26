@@ -1,11 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Daniel Nuffer
-    Copyright (c) 2004      Peder Holt
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_TREE_AST_HPP
@@ -14,18 +12,18 @@
 #include <boost/spirit/tree/common.hpp>
 #include <boost/spirit/core/scanner/scanner.hpp>
 
+#include <boost/spirit/tree/ast_fwd.hpp>
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace boost { namespace spirit {
 
-template <typename MatchPolicyT, typename NodeFactoryT>
-struct ast_tree_policy;
 
 //////////////////////////////////
 //  ast_match_policy is simply an id so the correct specialization of
 //  tree_policy can be found.
 template <
     typename IteratorT,
-    typename NodeFactoryT = node_val_data_factory<nil_t>
+    typename NodeFactoryT
 >
 struct ast_match_policy :
     public common_tree_match_policy<
@@ -38,6 +36,27 @@ struct ast_match_policy :
         >
     >
 {
+    typedef
+        common_tree_match_policy<
+            ast_match_policy<IteratorT, NodeFactoryT>,
+            IteratorT,
+            NodeFactoryT,
+            ast_tree_policy<
+                ast_match_policy<IteratorT, NodeFactoryT>,
+                NodeFactoryT
+            >
+        >
+    common_tree_match_policy_;
+
+    ast_match_policy()
+    {
+    }
+
+    template <typename PolicyT>
+    ast_match_policy(PolicyT const & policies)
+        : common_tree_match_policy_(policies)
+    {
+    }
 };
 
 //////////////////////////////////
@@ -54,9 +73,10 @@ struct ast_tree_policy :
     {
         BOOST_SPIRIT_ASSERT(a && b);
 
-#if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS_NODES & BOOST_SPIRIT_DEBUG_FLAGS_TREES)
-        BOOST_SPIRIT_DEBUG_OUT << "concat. a = " << a <<
-            "\n\tb = " << b << std::endl;
+#if defined(BOOST_SPIRIT_DEBUG) && \
+    (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_NODES)
+        BOOST_SPIRIT_DEBUG_OUT << "\n>>>AST concat. a = " << a <<
+            "\n\tb = " << b << "<<<\n";
 #endif
         typedef typename tree_match<iterator_t, NodeFactoryT>::container_t
             container_t;
@@ -82,6 +102,10 @@ struct ast_tree_policy :
         else if (0 != a.trees.size() && a.trees.begin()->value.is_root())
         {
             BOOST_SPIRIT_ASSERT(a.trees.size() == 1);
+
+#if !defined(BOOST_SPIRIT_USE_LIST_FOR_TREES)
+            a.trees.begin()->children.reserve(a.trees.begin()->children.size() + b.trees.size());
+#endif
             std::copy(b.trees.begin(),
                  b.trees.end(),
                  std::back_insert_iterator<container_t>(
@@ -89,20 +113,24 @@ struct ast_tree_policy :
         }
         else
         {
+#if !defined(BOOST_SPIRIT_USE_LIST_FOR_TREES)
+            a.trees.reserve(a.trees.size() + b.trees.size());
+#endif
             std::copy(b.trees.begin(),
                  b.trees.end(),
                  std::back_insert_iterator<container_t>(a.trees));
         }
 
-#if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS_NODES & BOOST_SPIRIT_DEBUG_FLAGS_TREES)
-        BOOST_SPIRIT_DEBUG_OUT << "after concat. a = " << a << std::endl;
+#if defined(BOOST_SPIRIT_DEBUG) && \
+    (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_NODES)
+        BOOST_SPIRIT_DEBUG_OUT << ">>>after AST concat. a = " << a << "<<<\n\n";
 #endif
 
         return;
     }
 
-    template <typename Iterator1T, typename Iterator2T>
-    static void group_match(match_t& m, parser_id const& id,
+    template <typename MatchT, typename Iterator1T, typename Iterator2T>
+    static void group_match(MatchT& m, parser_id const& id,
             Iterator1T const& first, Iterator2T const& last)
     {
         if (!m)
@@ -112,8 +140,12 @@ struct ast_tree_policy :
             container_t;
         typedef typename container_t::iterator cont_iterator_t;
         typedef typename NodeFactoryT::template factory<iterator_t> factory_t;
-        // only one node, so don't make a new level
-        if (m.trees.size() == 1)
+
+        if (m.trees.size() == 1
+#ifdef BOOST_SPIRIT_NO_TREE_NODE_COLLAPSING
+            && !(id.to_long() && m.trees.begin()->value.id().to_long())
+#endif
+            )
         {
             // set rule_id's.  There may have been multiple nodes created.
             // Because of root_node[] they may be left-most children of the top
@@ -131,7 +163,9 @@ struct ast_tree_policy :
         else
         {
             match_t newmatch(m.length(),
-                factory_t::create_node(first, last, false));
+                m.trees.empty() ? 
+                    factory_t::empty_node() : 
+                    factory_t::create_node(first, last, false));
 
             std::swap(newmatch.trees.begin()->children, m.trees);
             // set this node and all it's unset children's rule_id
@@ -154,8 +188,6 @@ struct ast_tree_policy :
     }
 };
 
-#if! BOOST_WORKAROUND(BOOST_MSVC , <= 1300)
-
 namespace impl {
 
     template <typename IteratorT, typename NodeFactoryT>
@@ -167,7 +199,6 @@ namespace impl {
 
 } // namespace impl
 
-#endif
 
 //////////////////////////////////
 struct gen_ast_node_parser_gen;
@@ -199,7 +230,7 @@ struct gen_ast_node_parser
             action_policy_t
         > policies_t;
 
-        return this->subject().parse(scan.change_policies(policies_t()));
+        return this->subject().parse(scan.change_policies(policies_t(scan)));
     }
 };
 
@@ -258,9 +289,9 @@ inline tree_parse_info<IteratorT, AstFactoryT>
 ast_parse(
     IteratorT const&        first_,
     IteratorT const&        last_,
-    parser<ParserT> const&  parser_,
+    parser<ParserT> const&  parser,
     SkipT const&            skip_,
-    AstFactoryT const &     /*dummy_*/ = AstFactoryT())
+    AstFactoryT const &   /*dummy_*/ = AstFactoryT())
 {
     typedef skip_parser_iteration_policy<SkipT> iter_policy_t;
     typedef ast_match_policy<IteratorT, AstFactoryT> ast_match_policy_t;
@@ -273,7 +304,7 @@ ast_parse(
     scanner_policies_t policies(iter_policy);
     IteratorT first = first_;
     scanner_t scan(first, last_, policies);
-    tree_match<IteratorT, AstFactoryT> hit = parser_.derived().parse(scan);
+    tree_match<IteratorT, AstFactoryT> hit = parser.derived().parse(scan);
     scan.skip(scan);
     return tree_parse_info<IteratorT, AstFactoryT>(
         first, hit, hit && (first == last_), hit.length(), hit.trees);
@@ -285,11 +316,11 @@ inline tree_parse_info<IteratorT>
 ast_parse(
     IteratorT const&        first_,
     IteratorT const&        last_,
-    parser<ParserT> const&  parser_,
+    parser<ParserT> const&  parser,
     SkipT const&            skip_)
 {
     typedef node_val_data_factory<nil_t> default_factory_t;
-    return ast_parse(first_, last_, parser_, skip_, default_factory_t());
+    return ast_parse(first_, last_, parser, skip_, default_factory_t());
 }
   
 //////////////////////////////////
@@ -298,16 +329,17 @@ inline tree_parse_info<IteratorT>
 ast_parse(
     IteratorT const&        first_,
     IteratorT const&        last,
-    parser<ParserT> const&  parser_)
+    parser<ParserT> const&  parser)
 {
+    typedef ast_match_policy<IteratorT> ast_match_policy_t;
     IteratorT first = first_;
     scanner<
         IteratorT,
-        scanner_policies<iteration_policy, ast_match_policy<IteratorT> >
+        scanner_policies<iteration_policy, ast_match_policy_t>
     > scan(first, last);
-    tree_match<IteratorT> hit = parser_.derived().parse(scan);
-    return tree_parse_info<IteratorT>(first, hit, hit && (first == last),
-        hit.length(), hit.trees);
+    tree_match<IteratorT> hit = parser.derived().parse(scan);
+    return tree_parse_info<IteratorT>(
+        first, hit, hit && (first == last), hit.length(), hit.trees);
 }
 
 //////////////////////////////////
@@ -315,13 +347,13 @@ template <typename CharT, typename ParserT, typename SkipT>
 inline tree_parse_info<CharT const*>
 ast_parse(
     CharT const*            str,
-    parser<ParserT> const&  parser_,
+    parser<ParserT> const&  parser,
     SkipT const&            skip)
 {
     CharT const* last = str;
     while (*last)
         last++;
-    return ast_parse(str, last, parser_, skip);
+    return ast_parse(str, last, parser, skip);
 }
 
 //////////////////////////////////
@@ -329,14 +361,14 @@ template <typename CharT, typename ParserT>
 inline tree_parse_info<CharT const*>
 ast_parse(
     CharT const*            str,
-    parser<ParserT> const&  parser_)
+    parser<ParserT> const&  parser)
 {
     CharT const* last = str;
     while (*last)
     {
         last++;
     }
-    return ast_parse(str, last, parser_);
+    return ast_parse(str, last, parser);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,11 +1,11 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     Copyright (c) 2002-2003 Martin Wille
+    Copyright (c) 2003 Hartmut Kaiser
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #if !defined BOOST_SPIRIT_GRAMMAR_IPP
@@ -30,7 +30,7 @@ namespace boost { namespace spirit {
 template <typename DerivedT, typename ContextT>
 struct grammar;
 
-#if defined(BOOST_MSVC) && (BOOST_MSVC <= 1200)
+#if defined(BOOST_MSVC) && (BOOST_MSVC < 1300)
 
 BOOST_SPIRIT_DEPENDENT_TEMPLATE_WRAPPER(grammar_definition_wrapper, definition);
 
@@ -76,7 +76,7 @@ struct grammar_definition
         typedef std::vector<helper_t*>        vector_t;
 
         grammar_helper_list() {}
-        grammar_helper_list(grammar_helper_list const& x)
+        grammar_helper_list(grammar_helper_list const& /*x*/)
         {   // Does _not_ copy the helpers member !
         }
 
@@ -117,12 +117,12 @@ struct grammar_definition
     };
 
     //////////////////////////////////
-    struct grammar_extract_helper_list;
+    struct grammartract_helper_list;
 
 #if !defined(BOOST_SPIRIT_SINGLE_GRAMMAR_INSTANCE)    \
     && (!defined(__GNUC__) || (__GNUC__ > 2))
 
-    struct grammar_extract_helper_list
+    struct grammartract_helper_list
     {
         template<typename GrammarT>
         static grammar_helper_list<GrammarT>&
@@ -160,7 +160,7 @@ struct grammar_definition
         {
             grammar_helper_list<GrammarT> &helpers =
 #if !defined(__GNUC__) || (__GNUC__ > 2)
-                grammar_extract_helper_list::do_(target_grammar);
+                grammartract_helper_list::do_(target_grammar);
 #else
                 target_grammar->helpers;
 #endif
@@ -207,21 +207,18 @@ struct grammar_definition
 
 #endif /* defined(BOOST_SPIRIT_SINGLE_GRAMMAR_INSTANCE) */
 
-    //////////////////////////////////
     template<typename DerivedT, typename ContextT, typename ScannerT>
-    inline typename parser_result<grammar<DerivedT, ContextT>, ScannerT>::type
-    grammar_parser_parse(
-        grammar<DerivedT, ContextT> const*  self,
-        ScannerT const &scan)
+    inline typename DerivedT::template definition<ScannerT> &
+    get_definition(grammar<DerivedT, ContextT> const*  self)
     {
-        typedef grammar<DerivedT, ContextT> self_t;
-        typedef typename parser_result<self_t, ScannerT>::type result_t;
-        typedef typename DerivedT::template definition<ScannerT> definition;
-
 #if defined(BOOST_SPIRIT_SINGLE_GRAMMAR_INSTANCE)
-        static definition    def(self->derived());
+
+        typedef typename DerivedT::template definition<ScannerT> definition_t;
+        static definition_t def(self->derived());
+        return def;
 #else
-        typedef grammar_helper<self_t, DerivedT, ScannerT> helper_t;
+        typedef grammar<DerivedT, ContextT>                      self_t;
+        typedef impl::grammar_helper<self_t, DerivedT, ScannerT> helper_t;
         typedef typename helper_t::helper_weak_ptr_t             ptr_t;
 
 # ifdef BOOST_SPIRIT_THREADSAFE
@@ -234,9 +231,55 @@ struct grammar_definition
 # endif
         if (!boost::make_shared(helper).get())
             new helper_t(helper);
-        definition &def = boost::make_shared(helper)->define(self);
+        return boost::make_shared(helper)->define(self);
 #endif
-        return def.start().parse(scan);
+    }
+
+#if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION)
+    template <int N>
+    struct call_helper {
+
+        template <typename RT, typename DefinitionT, typename ScannerT>
+        static void
+        do_ (RT &result, DefinitionT &def, ScannerT const &scan)
+        {
+            result = def.template get_start_parser<N>()->parse(scan);
+        }
+    };
+#else
+    //  The grammar_def stuff isn't supported for compilers, which do not
+    //  support partial template specialization
+    template <int N> struct call_helper;
+#endif
+
+    template <>
+    struct call_helper<0> {
+
+        template <typename RT, typename DefinitionT, typename ScannerT>
+        static void
+        do_ (RT &result, DefinitionT &def, ScannerT const &scan)
+        {
+            result = def.start().parse(scan);
+        }
+    };
+
+    //////////////////////////////////
+    template<int N, typename DerivedT, typename ContextT, typename ScannerT>
+    inline typename parser_result<grammar<DerivedT, ContextT>, ScannerT>::type
+    grammar_parser_parse(
+        grammar<DerivedT, ContextT> const*  self,
+        ScannerT const &scan)
+    {
+        typedef
+            typename parser_result<grammar<DerivedT, ContextT>, ScannerT>::type
+            result_t;
+        typedef typename DerivedT::template definition<ScannerT> definition_t;
+
+        result_t result;
+        definition_t &def = get_definition<DerivedT, ContextT, ScannerT>(self);
+
+        call_helper<N>::do_(result, def, scan);
+        return result;
     }
 
     //////////////////////////////////
@@ -245,18 +288,18 @@ struct grammar_definition
     grammar_destruct(GrammarT* self)
     {
 #if !defined(BOOST_SPIRIT_SINGLE_GRAMMAR_INSTANCE)
-        typedef grammar_helper_base<GrammarT> helper_base_t;
+        typedef impl::grammar_helper_base<GrammarT> helper_base_t;
         typedef grammar_helper_list<GrammarT> helper_list_t;
         typedef typename helper_list_t::vector_t::reverse_iterator iterator_t;
 
         helper_list_t&  helpers =
 # if !defined(__GNUC__) || (__GNUC__ > 2)
-            grammar_extract_helper_list::do_(self);
+            grammartract_helper_list::do_(self);
 # else
             self->helpers;
 # endif
 
-# if (defined(BOOST_MSVC) && (BOOST_MSVC <= 1200)) \
+# if (defined(BOOST_MSVC) && (BOOST_MSVC < 1300)) \
     || defined(BOOST_INTEL_CXX_VERSION)
         for (iterator_t i = helpers.rbegin(); i != helpers.rend(); ++i)
             (*i)->undefine(self);
@@ -265,8 +308,53 @@ struct grammar_definition
             std::bind2nd(std::mem_fun(&helper_base_t::undefine), self));
 # endif
 
+#else
+        (void)self;
 #endif
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    //  entry_grammar class
+    //
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename DerivedT, int N, typename ContextT>
+    class entry_grammar
+        : public parser<entry_grammar<DerivedT, N, ContextT> >
+    {
+
+    public:
+        typedef entry_grammar<DerivedT, N, ContextT>    self_t;
+        typedef self_t                                  embed_t;
+        typedef typename ContextT::context_linker_t     context_t;
+        typedef typename context_t::attr_t              attr_t;
+
+        template <typename ScannerT>
+        struct result
+        {
+            typedef typename match_result<ScannerT, attr_t>::type type;
+        };
+
+        entry_grammar(DerivedT const &p) : target_grammar(p) {}
+
+        template <typename ScannerT>
+        typename parser_result<self_t, ScannerT>::type
+        parse_main(ScannerT const& scan) const
+        { return impl::grammar_parser_parse<N>(&target_grammar, scan); }
+
+        template <typename ScannerT>
+        typename parser_result<self_t, ScannerT>::type
+        parse(ScannerT const& scan) const
+        {
+            typedef typename parser_result<self_t, ScannerT>::type result_t;
+            typedef parser_scanner_linker<ScannerT> scanner_t;
+            BOOST_SPIRIT_CONTEXT_PARSE(scan, target_grammar, scanner_t,
+                context_t, result_t)
+        }
+
+    private:
+        DerivedT const &target_grammar;
+    };
 
     } // namespace impl
 
@@ -288,7 +376,7 @@ struct grammar_definition
 #if !defined(BOOST_SPIRIT_SINGLE_GRAMMAR_INSTANCE)
 #define BOOST_SPIRIT_GRAMMAR_STATE                            \
     BOOST_SPIRIT_GRAMMAR_ACCESS                               \
-    friend struct impl::grammar_extract_helper_list;    \
+    friend struct impl::grammartract_helper_list;    \
     mutable impl::grammar_helper_list<self_t> helpers;
 #else
 #define BOOST_SPIRIT_GRAMMAR_STATE

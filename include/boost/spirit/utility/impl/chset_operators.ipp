@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_CHSET_OPERATORS_IPP
@@ -157,7 +156,7 @@ template <typename CharT>
 inline chset<CharT>
 operator|(chset<CharT> const& a, CharT b)
 {
-    return a | range<CharT>(b, b);
+    return a | chset<CharT>(b);
 }
 
 //////////////////////////////////
@@ -165,7 +164,7 @@ template <typename CharT>
 inline chset<CharT>
 operator&(chset<CharT> const& a, CharT b)
 {
-    return a & range<CharT>(b, b);
+    return a & chset<CharT>(b);
 }
 
 //////////////////////////////////
@@ -173,7 +172,7 @@ template <typename CharT>
 inline chset<CharT>
 operator-(chset<CharT> const& a, CharT b)
 {
-    return a - range<CharT>(b, b);
+    return a - chset<CharT>(b);
 }
 
 //////////////////////////////////
@@ -181,7 +180,7 @@ template <typename CharT>
 inline chset<CharT>
 operator^(chset<CharT> const& a, CharT b)
 {
-    return a ^ range<CharT>(b, b);
+    return a ^ chset<CharT>(b);
 }
 
 //////////////////////////////////
@@ -189,7 +188,7 @@ template <typename CharT>
 inline chset<CharT>
 operator|(CharT a, chset<CharT> const& b)
 {
-    return range<CharT>(a, a) | b;
+    return chset<CharT>(a) | b;
 }
 
 //////////////////////////////////
@@ -197,7 +196,7 @@ template <typename CharT>
 inline chset<CharT>
 operator&(CharT a, chset<CharT> const& b)
 {
-    return range<CharT>(a, a) & b;
+    return chset<CharT>(a) & b;
 }
 
 //////////////////////////////////
@@ -205,7 +204,7 @@ template <typename CharT>
 inline chset<CharT>
 operator-(CharT a, chset<CharT> const& b)
 {
-    return range<CharT>(a, a) - b;
+    return chset<CharT>(a) - b;
 }
 
 //////////////////////////////////
@@ -213,7 +212,7 @@ template <typename CharT>
 inline chset<CharT>
 operator^(CharT a, chset<CharT> const& b)
 {
-    return range<CharT>(a, a) ^ b;
+    return chset<CharT>(a) ^ b;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -225,7 +224,7 @@ template <typename CharT>
 inline chset<CharT>
 operator|(chset<CharT> const& a, chlit<CharT> const& b)
 {
-    return a | b.ch;
+    return a | chset<CharT>(b.ch);
 }
 
 //////////////////////////////////
@@ -233,7 +232,7 @@ template <typename CharT>
 inline chset<CharT>
 operator&(chset<CharT> const& a, chlit<CharT> const& b)
 {
-    return a & b.ch;
+    return a & chset<CharT>(b.ch);
 }
 
 //////////////////////////////////
@@ -241,7 +240,7 @@ template <typename CharT>
 inline chset<CharT>
 operator-(chset<CharT> const& a, chlit<CharT> const& b)
 {
-    return a - b.ch;
+    return a - chset<CharT>(b.ch);
 }
 
 //////////////////////////////////
@@ -249,7 +248,7 @@ template <typename CharT>
 inline chset<CharT>
 operator^(chset<CharT> const& a, chlit<CharT> const& b)
 {
-    return a ^ b.ch;
+    return a ^ chset<CharT>(b.ch);
 }
 
 //////////////////////////////////
@@ -257,11 +256,7 @@ template <typename CharT>
 inline chset<CharT>
 operator|(chlit<CharT> const& a, chset<CharT> const& b)
 {
-#if BOOST_WORKAROUND(BOOST_MSVC, BOOST_TESTED_AT(1400))
-    return a.ch | b;
-#else
-    return operator| <CharT> (a.ch, b);
-#endif
+    return chset<CharT>(a.ch) | b;
 }
 
 //////////////////////////////////
@@ -269,11 +264,7 @@ template <typename CharT>
 inline chset<CharT>
 operator&(chlit<CharT> const& a, chset<CharT> const& b)
 {
-#if BOOST_WORKAROUND(BOOST_MSVC, BOOST_TESTED_AT(1400))
-    return a.ch & b;
-#else
-    return operator& <CharT> (a.ch, b);
-#endif
+    return chset<CharT>(a.ch) & b;
 }
 
 //////////////////////////////////
@@ -281,11 +272,7 @@ template <typename CharT>
 inline chset<CharT>
 operator-(chlit<CharT> const& a, chset<CharT> const& b)
 {
-#if BOOST_WORKAROUND(BOOST_MSVC, BOOST_TESTED_AT(1400))
-    return a.ch - b;
-#else
-    return operator- <CharT> (a.ch, b);
-#endif
+    return chset<CharT>(a.ch) - b;
 }
 
 //////////////////////////////////
@@ -293,14 +280,10 @@ template <typename CharT>
 inline chset<CharT>
 operator^(chlit<CharT> const& a, chset<CharT> const& b)
 {
-#if BOOST_WORKAROUND(BOOST_MSVC, BOOST_TESTED_AT(1400))
-    return a.ch ^ b;
-#else
-    return operator^ <CharT> (a.ch, b);
-#endif
+    return chset<CharT>(a.ch) ^ b;
 }
 
-#if BOOST_WORKAROUND(BOOST_MSVC, BOOST_TESTED_AT(1400))
+#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
 
 ///////////////////////////////////////////////////////////////////////////////
 //

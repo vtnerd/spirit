@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2003 Hartmut Kaiser
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_SWITCH_HPP
@@ -42,6 +41,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 BOOST_STATIC_ASSERT(BOOST_SPIRIT_SWITCH_CASE_LIMIT > 0);
 
+#include <boost/spirit/core/config.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/spirit/core/parser.hpp>
 #include <boost/spirit/core/composite/epsilon.hpp>
@@ -114,7 +114,7 @@ struct switch_parser
             impl::make_cond_functor<CondT>::do_(cond));
     }
 
-    CondT const &cond;
+    CondT cond;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,10 +155,6 @@ struct case_parser
 
     case_parser(parser<ParserT> const &p)
     :   base_t(p.derived())
-    {}
-
-    case_parser()
-    :   base_t()
     {}
 
     template <typename ScannerT>

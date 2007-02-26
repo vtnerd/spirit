@@ -1,11 +1,10 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     Copyright (c) 2001-2003 Daniel Nuffer
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_CHSET_IPP
@@ -118,7 +117,7 @@ inline chset<CharT>::chset(CharT arg_)
 { ptr->set(arg_); }
 
 template <typename CharT>
-inline chset<CharT>::chset(anychar_parser arg_)
+inline chset<CharT>::chset(anychar_parser /*arg*/)
 : ptr(new basic_chset<CharT>())
 {
     ptr->set(

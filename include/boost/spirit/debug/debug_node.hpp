@@ -1,12 +1,11 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     Copyright (c) 2002-2003 Hartmut Kaiser
     Copyright (c) 2003 Gustavo Guerra
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #if !defined(BOOST_SPIRIT_DEBUG_NODE_HPP)
@@ -39,34 +38,34 @@ namespace impl {
     struct token_printer_aux_for_chars
     {
         template<typename CharT>
-        static void print(CharT c)
+        static void print(std::ostream& o, CharT c)
         {
             if (c == static_cast<CharT>('\a'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\a";
+                o << "\\a";
 
             else if (c == static_cast<CharT>('\b'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\b";
+                o << "\\b";
 
             else if (c == static_cast<CharT>('\f'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\f";
+                o << "\\f";
 
             else if (c == static_cast<CharT>('\n'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\n";
+                o << "\\n";
 
             else if (c == static_cast<CharT>('\r'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\r";
+                o << "\\r";
 
             else if (c == static_cast<CharT>('\t'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\t";
+                o << "\\t";
 
             else if (c == static_cast<CharT>('\v'))
-                BOOST_SPIRIT_DEBUG_OUT << "\\v";
+                o << "\\v";
 
             else if (iscntrl_(c))
-                BOOST_SPIRIT_DEBUG_OUT << "\\" << static_cast<int>(c);
+                o << "\\" << static_cast<int>(c);
 
             else
-                BOOST_SPIRIT_DEBUG_OUT << static_cast<char>(c);
+                o << static_cast<char>(c);
         }
     };
 
@@ -74,9 +73,9 @@ namespace impl {
     struct token_printer_aux_for_other_types
     {
         template<typename CharT>
-        static void print(CharT c)
+        static void print(std::ostream& o, CharT c)
         {
-            BOOST_SPIRIT_DEBUG_OUT << c;
+            o << c;
         }
     };
 
@@ -93,15 +92,15 @@ namespace impl {
     };
 
     template<typename CharT>
-    inline void token_printer(CharT c)
+    inline void token_printer(std::ostream& o, CharT c)
     {
     #if !defined(BOOST_SPIRIT_DEBUG_TOKEN_PRINTER)
 
-        token_printer_aux<CharT>::print(c);
+        token_printer_aux<CharT>::print(o, c);
 
     #else
 
-        BOOST_SPIRIT_DEBUG_TOKEN_PRINTER(BOOST_SPIRIT_DEBUG_OUT, c);
+        BOOST_SPIRIT_DEBUG_TOKEN_PRINTER(o, c);
 
     #endif
     }
@@ -137,7 +136,7 @@ namespace impl {
                 if (iter == ilast)
                     break;
 
-                token_printer(*iter);
+                token_printer(BOOST_SPIRIT_DEBUG_OUT, *iter);
                 ++iter;
             }
             BOOST_SPIRIT_DEBUG_OUT << "\"\n";
@@ -150,13 +149,18 @@ namespace impl {
     inline ResultT &
     print_closure_info(ResultT &hit, int level, std::string const& name)
     {
-        if (!name.empty()) {
+        if (!name.empty())
+        {
             for (int i = 0; i < level-1; ++i)
                 BOOST_SPIRIT_DEBUG_OUT << "  ";
 
         // for now, print out the return value only
-            BOOST_SPIRIT_DEBUG_OUT
-                << "^" << name << ":\t" << hit.value() << "\n";
+            BOOST_SPIRIT_DEBUG_OUT << "^" << name << ":\t";
+            if (hit.has_valid_attribute())
+                BOOST_SPIRIT_DEBUG_OUT << hit.value();
+            else
+                BOOST_SPIRIT_DEBUG_OUT << "undefined attribute";
+            BOOST_SPIRIT_DEBUG_OUT << "\n";
         }
         return hit;
     }
@@ -195,12 +199,12 @@ namespace impl {
             this->base_t::pre_parse(p, scan);
 
 #if BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_NODES
-            if (trace_parser(p)) {
+            if (trace_parser(p.derived())) {
                 impl::print_node_info(
                     false,
                     scan.get_level(),
                     false,
-                    parser_name(p),
+                    parser_name(p.derived()),
                     scan.first,
                     scan.last);
             }
@@ -213,12 +217,12 @@ namespace impl {
         {
 #if BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_NODES
             --scan.get_level();
-            if (trace_parser(p)) {
+            if (trace_parser(p.derived())) {
                 impl::print_node_info(
                     hit,
                     scan.get_level(),
                     true,
-                    parser_name(p),
+                    parser_name(p.derived()),
                     scan.first,
                     scan.last);
             }
@@ -287,12 +291,12 @@ namespace impl {
         post_parse(ResultT& hit, ParserT const& p, ScannerT &scan)
         {
 #if BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_CLOSURES
-            if (hit && trace_parser(p)) {
+            if (hit && trace_parser(p.derived())) {
             // for now, print out the return value only
                 return impl::print_closure_info(
                     this->base_t::post_parse(hit, p, scan),
                     scan.get_level(),
-                    parser_name(p)
+                    parser_name(p.derived())
                 );
             }
 #endif // BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_CLOSURES

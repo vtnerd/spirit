@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Daniel Nuffer
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #ifndef BOOST_SPIRIT_TREE_PARSE_TREE_HPP
@@ -13,17 +12,17 @@
 #include <boost/spirit/tree/common.hpp>
 #include <boost/spirit/core/scanner/scanner.hpp>
 
+#include <boost/spirit/tree/parse_tree_fwd.hpp>
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace boost { namespace spirit {
 
-template <typename MatchPolicyT, typename NodeFactoryT>
-struct pt_tree_policy;
 
 //////////////////////////////////
 // pt_match_policy is simply an id so the correct specialization of tree_policy can be found.
 template <
     typename IteratorT,
-    typename NodeFactoryT = node_val_data_factory<nil_t>
+    typename NodeFactoryT 
 >
 struct pt_match_policy :
     public common_tree_match_policy<
@@ -36,6 +35,27 @@ struct pt_match_policy :
         >
     >
 {
+    typedef
+        common_tree_match_policy<
+            pt_match_policy<IteratorT, NodeFactoryT>,
+            IteratorT,
+            NodeFactoryT,
+            pt_tree_policy<
+                pt_match_policy<IteratorT, NodeFactoryT>,
+                NodeFactoryT
+            >
+        >
+    common_tree_match_policy_;
+
+    pt_match_policy()
+    {
+    }
+
+    template <typename PolicyT>
+    pt_match_policy(PolicyT const & policies)
+        : common_tree_match_policy_(policies)
+    {
+    }
 };
 
 //////////////////////////////////
@@ -57,8 +77,8 @@ struct pt_tree_policy :
             std::back_insert_iterator<typename match_t::container_t>(a.trees));
     }
 
-    template <typename Iterator1T, typename Iterator2T>
-    static void group_match(match_t& m, parser_id const& id,
+    template <typename MatchT, typename Iterator1T, typename Iterator2T>
+    static void group_match(MatchT& m, parser_id const& id,
             Iterator1T const& first, Iterator2T const& last)
     {
         if (!m)
@@ -92,8 +112,6 @@ struct pt_tree_policy :
     }
 };
 
-#if! BOOST_WORKAROUND(BOOST_MSVC , <= 1300)
-
 namespace impl {
 
     template <typename IteratorT, typename NodeFactoryT>
@@ -105,7 +123,6 @@ namespace impl {
 
 } // namespace impl
 
-#endif
 
 //////////////////////////////////
 struct gen_pt_node_parser_gen;
@@ -137,7 +154,7 @@ struct gen_pt_node_parser
             action_policy_t
         > policies_t;
 
-        return this->subject().parse(scan.change_policies(policies_t()));
+        return this->subject().parse(scan.change_policies(policies_t(scan)));
     }
 };
 
@@ -184,7 +201,7 @@ pt_parse(
     IteratorT const&        last,
     parser<ParserT> const&  p,
     SkipT const&            skip,
-    NodeFactoryT const &    /*dummy_*/ = NodeFactoryT())
+    NodeFactoryT const&   /*dummy_*/ = NodeFactoryT())
 {
     typedef skip_parser_iteration_policy<SkipT> iter_policy_t;
     typedef pt_match_policy<IteratorT, NodeFactoryT> pt_match_policy_t;
@@ -198,7 +215,6 @@ pt_parse(
     IteratorT first = first_;
     scanner_t scan(first, last, policies);
     tree_match<IteratorT, NodeFactoryT> hit = p.derived().parse(scan);
-    scan.skip(scan);
     return tree_parse_info<IteratorT, NodeFactoryT>(
         first, hit, hit && (first == last), hit.length(), hit.trees);
 }
@@ -221,16 +237,17 @@ inline tree_parse_info<IteratorT>
 pt_parse(
     IteratorT const&        first_,
     IteratorT const&        last,
-    parser<ParserT> const&  parser_)
+    parser<ParserT> const&  parser)
 {
+    typedef pt_match_policy<IteratorT> pt_match_policy_t;
     IteratorT first = first_;
     scanner<
         IteratorT,
-        scanner_policies<iteration_policy, pt_match_policy<IteratorT> >
+        scanner_policies<iteration_policy, pt_match_policy_t>
     > scan(first, last);
-    tree_match<IteratorT> hit = parser_.derived().parse(scan);
-    return tree_parse_info<IteratorT>(first, hit, hit && (first == last),
-        hit.length(), hit.trees);
+    tree_match<IteratorT> hit = parser.derived().parse(scan);
+    return tree_parse_info<IteratorT>(
+        first, hit, hit && (first == last), hit.length(), hit.trees);
 }
 
 //////////////////////////////////
@@ -252,14 +269,14 @@ template <typename CharT, typename ParserT>
 inline tree_parse_info<CharT const*>
 pt_parse(
     CharT const*            str,
-    parser<ParserT> const&  parser_)
+    parser<ParserT> const&  parser)
 {
     CharT const* last = str;
     while (*last)
     {
         last++;
     }
-    return pt_parse(str, last, parser_);
+    return pt_parse(str, last, parser);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

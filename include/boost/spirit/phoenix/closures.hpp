@@ -3,8 +3,8 @@
     Copyright (c) 2001-2002 Joel de Guzman
     MT code Copyright (c) 2002-2003 Martin Wille
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 ==============================================================================*/
 #ifndef PHOENIX_CLOSURES_HPP
@@ -16,6 +16,7 @@
 
 #ifdef PHOENIX_THREADSAFE
 #include <boost/thread/tss.hpp>
+#include <boost/thread/once.hpp>
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,7 +235,7 @@ private:
     closure_frame& operator=(closure_frame const&); // no assign
 
     closure_frame* save;
-    impl::closure_frame_holder<closure_frame<ClosureT> >& frame;
+    impl::closure_frame_holder<closure_frame>& frame;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -397,11 +398,28 @@ private:
 
     typedef impl::closure_frame_holder<closure_frame_t> holder_t;
 
+#ifdef PHOENIX_THREADSAFE
+    static boost::thread_specific_ptr<holder_t*> &
+    tsp_frame_instance()
+    {
+        static boost::thread_specific_ptr<holder_t*> the_instance;
+        return the_instance;
+    }
+
+    static void
+    tsp_frame_instance_init()
+    {
+        tsp_frame_instance();
+    }
+#endif
+
     static holder_t &
     closure_frame_holder_ref(holder_t* holder_ = 0)
     {
 #ifdef PHOENIX_THREADSAFE
-        static boost::thread_specific_ptr<holder_t*> tsp_frame;
+        static boost::once_flag been_here = BOOST_ONCE_INIT;
+        boost::call_once(tsp_frame_instance_init, been_here);
+        boost::thread_specific_ptr<holder_t*> &tsp_frame = tsp_frame_instance();
         if (!tsp_frame.get())
             tsp_frame.reset(new holder_t *(0));
         holder_t *& holder = *tsp_frame;

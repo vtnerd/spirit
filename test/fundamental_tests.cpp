@@ -1,10 +1,9 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 2001-2003 Joel de Guzman
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,15 +12,17 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cassert>
+#include <boost/detail/lightweight_test.hpp>
 #include <iostream>
-
 #include <boost/static_assert.hpp>
-
 #include <boost/spirit/core.hpp>
+#include <boost/spirit/meta.hpp>
+#include <boost/spirit/actor/assign_actor.hpp>
 
 using namespace std;
 using namespace boost::spirit;
+
+typedef ref_value_actor<char, assign_action> assign_actor;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -34,7 +35,7 @@ node_count_tests()
 // simple types
     typedef chlit<char> plain_t;
     typedef optional<chlit<char> > optional_t;
-    typedef action<chlit<char>, assign_actor<char> > action_t;
+    typedef action<chlit<char>, assign_actor> action_t;
     typedef sequence<chlit<char>, anychar_parser> sequence_t;
 
     BOOST_STATIC_ASSERT(1 == node_count<plain_t>::value);
@@ -61,7 +62,7 @@ leaf_count_tests()
 // simple types
     typedef chlit<char> plain_t;
     typedef optional<chlit<char> > optional_t;
-    typedef action<chlit<char>, assign_actor<char> > action_t;
+    typedef action<chlit<char>, assign_actor> action_t;
     typedef sequence<chlit<char>, anychar_parser> sequence_t;
 
     BOOST_STATIC_ASSERT(1 == leaf_count<plain_t>::value);
@@ -89,7 +90,6 @@ main()
     node_count_tests();
     leaf_count_tests();
 
-    cout << "Tests concluded successfully\n";
-    return 0;
+    return boost::report_errors();
 }
 

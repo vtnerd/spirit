@@ -1,12 +1,11 @@
 /*=============================================================================
-    Spirit v1.6.2
     Copyright (c) 1998-2003 Joel de Guzman
     Copyright (c) 2002 Raghavendra Satish
     Copyright (c) 2002 Jeff Westfahl
     http://spirit.sourceforge.net/
 
-    Distributed under the Boost Software License, Version 1.0.
-    (See accompanying file LICENSE_1_0.txt or copy at 
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 #if !defined(BOOST_SPIRIT_LOOPS_HPP)
@@ -55,9 +54,9 @@ namespace boost { namespace spirit {
         {
             typedef typename parser_result<self_t, ScannerT>::type result_t;
             result_t hit = scan.empty_match();
-            unsigned n = m_exact;
+            std::size_t n = m_exact;
 
-            for (unsigned i = 0; i < n; ++i)
+            for (std::size_t i = 0; i < n; ++i)
             {
                 if (result_t next = this->subject().parse(scan))
                 {
@@ -122,14 +121,14 @@ namespace boost { namespace spirit {
             typedef typename parser_result<self_t, ScannerT>::type result_t;
             result_t hit = scan.empty_match();
 
-            unsigned n1 = m_min;
-            unsigned n2 = m_max;
+            std::size_t n1 = m_min;
+            std::size_t n2 = m_max;
 
-            for (unsigned i = 0; i < n2; ++i)
+            for (std::size_t i = 0; i < n2; ++i)
             {
                 typename ScannerT::iterator_t save = scan.first;
                 result_t next = this->subject().parse(scan);
-
+ 
                 if (!next)
                 {
                     if (i >= n1)
@@ -142,6 +141,7 @@ namespace boost { namespace spirit {
                         return scan.no_match();
                     }
                 }
+
                 scan.concat_match(hit, next);
             }
 
@@ -206,9 +206,9 @@ namespace boost { namespace spirit {
         {
             typedef typename parser_result<self_t, ScannerT>::type result_t;
             result_t hit = scan.empty_match();
-            unsigned n = m_min;
+            std::size_t n = m_min;
 
-            for (unsigned i = 0; ; ++i)
+            for (std::size_t i = 0; ; ++i)
             {
                 typename ScannerT::iterator_t save = scan.first;
                 result_t next = this->subject().parse(scan);
@@ -225,6 +225,7 @@ namespace boost { namespace spirit {
                         return scan.no_match();
                     }
                 }
+
                 scan.concat_match(hit, next);
             }
 
@@ -260,22 +261,6 @@ namespace boost { namespace spirit {
 
     namespace impl {
 
-    #if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION)
-
-        template <typename ParserT, typename MinT, typename MaxT>
-        struct loop_traits
-        {
-            typedef finite_loop<ParserT, MinT, MaxT> type;
-        };
-
-        template <typename ParserT, typename MinT>
-        struct loop_traits<ParserT, MinT, more_t>
-        {
-            typedef infinite_loop<ParserT, MinT> type;
-        };
-
-    #else
-
         template <typename ParserT, typename MinT, typename MaxT>
         struct loop_traits
         {
@@ -285,8 +270,6 @@ namespace boost { namespace spirit {
                 finite_loop<ParserT, MinT, MaxT>
             >::type type;
         };
-
-    #endif
 
     } // namespace impl
 
