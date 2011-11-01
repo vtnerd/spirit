@@ -167,18 +167,28 @@ namespace boost { namespace spirit { namespace qi
         {
         }
 
-        template <typename Expr>
-        rule(Expr const& expr, std::string const& name_ = "unnamed-rule")
-          : base_type(terminal::make(reference_(*this)))
-          , name_(name_)
+        template <typename Auto, typename Expr>
+        static void define(rule& lhs, Expr const& expr, mpl::false_)
         {
             // Report invalid expression error as early as possible.
             // If you got an error_invalid_expression error message here,
             // then the expression (expr) is not a valid spirit qi expression.
             BOOST_SPIRIT_ASSERT_MATCH(qi::domain, Expr);
+        }
 
-            f = detail::bind_parser<mpl::false_>(
+        template <typename Auto, typename Expr>
+        static void define(rule& lhs, Expr const& expr, mpl::true_)
+        {
+            lhs.f = detail::bind_parser<Auto>(
                 compile<qi::domain>(expr, encoding_modifier_type()));
+        }
+
+        template <typename Expr>
+        rule(Expr const& expr, std::string const& name_ = "unnamed-rule")
+          : base_type(terminal::make(reference_(*this)))
+          , name_(name_)
+        {
+            define<mpl::false_>(*this, expr, traits::matches<qi::domain, Expr>());
         }
 
         rule& operator=(rule const& rhs)
@@ -207,13 +217,7 @@ namespace boost { namespace spirit { namespace qi
         template <typename Expr>
         rule& operator=(Expr const& expr)
         {
-            // Report invalid expression error as early as possible.
-            // If you got an error_invalid_expression error message here,
-            // then the expression (expr) is not a valid spirit qi expression.
-            BOOST_SPIRIT_ASSERT_MATCH(qi::domain, Expr);
-
-            f = detail::bind_parser<mpl::false_>(
-                compile<qi::domain>(expr, encoding_modifier_type()));
+            define<mpl::false_>(*this, expr, traits::matches<qi::domain, Expr>());
             return *this;
         }
 
@@ -223,22 +227,27 @@ namespace boost { namespace spirit { namespace qi
         template <typename Expr>
         friend rule& operator%=(rule& r, Expr const& expr)
         {
-            // Report invalid expression error as early as possible.
-            // If you got an error_invalid_expression error message here,
-            // then the expression (expr) is not a valid spirit qi expression.
-            BOOST_SPIRIT_ASSERT_MATCH(qi::domain, Expr);
-
-            r.f = detail::bind_parser<mpl::true_>(
-                compile<qi::domain>(expr, encoding_modifier_type()));
+            define<mpl::true_>(r, expr, traits::matches<qi::domain, Expr>());
             return r;
         }
 
+#if defined(BOOST_NO_RVALUE_REFERENCES)
         // non-const version needed to suppress proto's %= kicking in
         template <typename Expr>
         friend rule& operator%=(rule& r, Expr& expr)
         {
             return r %= static_cast<Expr const&>(expr);
         }
+#else
+        // for rvalue references
+        template <typename Expr>
+        friend rule& operator%=(rule& r, Expr&& expr)
+        {
+            define<mpl::true_>(r, expr, traits::matches<qi::domain, Expr>());
+            return r;
+        }
+#endif
+
 #else
         // both friend functions have to be defined out of class as VC7.1
         // will complain otherwise

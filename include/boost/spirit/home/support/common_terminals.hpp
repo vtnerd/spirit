@@ -116,6 +116,12 @@ namespace boost { namespace spirit
         ( qword, qword_type )
         ( big_qword, big_qword_type )
         ( little_qword, little_qword_type )
+        ( bin_float, bin_float_type )
+        ( big_bin_float, big_bin_float_type )
+        ( little_bin_float, little_bin_float_type )
+        ( bin_double, bin_double_type )
+        ( big_bin_double, big_bin_double_type )
+        ( little_bin_double, little_bin_double_type )
         ( skip, skip_type )
         ( delimit, delimit_type )
         ( stream, stream_type )
@@ -128,6 +134,8 @@ namespace boost { namespace spirit
         ( in_state, in_state_type )
         ( token, token_type )
         ( tokenid, tokenid_type )
+        ( raw_token, raw_token_type )
+        ( tokenid_mask, tokenid_mask_type )
         ( attr, attr_type )
         ( columns, columns_type )
         ( auto_, auto_type )
@@ -136,8 +144,8 @@ namespace boost { namespace spirit
     // special tags (used mainly for stateful tag types)
     namespace tag
     {
-        struct attr_cast {};
-        struct as {};
+        struct attr_cast { BOOST_SPIRIT_IS_TAG() };
+        struct as { BOOST_SPIRIT_IS_TAG() };
     }
 }}
 
