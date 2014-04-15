@@ -67,15 +67,15 @@ int main()
         );
     }
 
-// test action
+    // test action
     {
 
        bool b = false;
        auto const action = [&b]() { b = true; };
 
        BOOST_TEST( // expect partial match
-       test("abcdefg", x3::seek["def"][action], false)
-              && b
+           test("abcdefg", x3::seek["def"][action], false)
+           && b
        );
     }
 
