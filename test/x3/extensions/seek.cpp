@@ -67,16 +67,16 @@ int main()
         );
     }
 
-    // test action
+// test action
     {
-        /* action does not appear to be implemented in x3 yet
-           bool b = false;
+
+       bool b = false;
+       auto const action = [&b]() { b = true; };
 
        BOOST_TEST( // expect partial match
-           test("abcdefg", seek["def"][ref(b) = true], false)
+       test("abcdefg", x3::seek["def"][action], false)
               && b
        );
-        */
     }
 
     return boost::report_errors();
