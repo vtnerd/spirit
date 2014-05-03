@@ -79,5 +79,15 @@ int main()
        );
     }
 
+    // test container
+    {
+        std::vector<int> v;
+
+        BOOST_TEST(
+            test_attr("abcInt:100Int:95Int:44", x3::seek[+("Int:" >> x3::int_)], v)
+            && v.size() == 3 && v[0] == 100 && v[1] == 95 && v[2] == 44
+        );
+    }
+
     return boost::report_errors();
 }
